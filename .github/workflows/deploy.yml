@@ -1,0 +1,89 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Minifiers
+        run: |
+          npm install -g html-minifier-terser
+          npm install -g clean-css-cli
+          npm install -g terser
+
+      - name: Copy site
+        run: |
+          mkdir dist
+          rsync -av \
+            --exclude=.git \
+            --exclude=.github \
+            ./ dist/
+
+      - name: Minify HTML
+        run: |
+          find dist -name "*.html" -exec \
+          html-minifier-terser \
+          --collapse-whitespace \
+          --remove-comments \
+          --remove-optional-tags \
+          --remove-redundant-attributes \
+          --remove-script-type-attributes \
+          --remove-tag-whitespace \
+          --use-short-doctype \
+          --minify-css true \
+          --minify-js true \
+          -o {} {} \;
+
+      - name: Minify CSS
+        run: |
+          find dist -name "*.css" -exec \
+          cleancss -o {} {} \;
+
+      - name: Minify JS
+        run: |
+          find dist -name "*.js" -exec \
+          terser {} -c -m -o {} \;
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
