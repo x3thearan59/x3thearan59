@@ -59,6 +59,16 @@ jobs:
           sed -i "s/__VERSION__/$VERSION/g" {} \;
 
 
+      # Update sitemap date
+      - name: Update sitemap date
+        run: |
+          DATE=$(git log -1 --format=%cs)
+
+          echo "Sitemap date: $DATE"
+
+          sed -i "s/__DATE__/$DATE/g" dist/sitemap.xml
+
+
       # Minify HTML
       - name: Minify HTML
         run: |
