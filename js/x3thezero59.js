@@ -25,8 +25,11 @@
             const linkCard =
             linksTemplate.cloneNode(true);
             linkCard.style.display = "flex";
-            linkCard.href =
-            item.link;
+            
+            linkCard.href = item.link;
+            linkCard.target = "_blank";
+            linkCard.rel = "noopener noreferrer";
+            
             const linkIcon =
             linkCard.querySelector(".site-icon");
             const linkName =
