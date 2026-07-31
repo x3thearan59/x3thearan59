@@ -219,7 +219,7 @@ if(videoScroll){
     const modal = document.querySelector(".video-modal");
     const iframe = document.querySelector(".video-iframe");
     iframe.src =
-    `https://www.youtube.com/embed/${videoID}?autoplay=1`;
+    `https://www.youtube.com/embed/${videoID}?autoplay=1&rel=0`;
     modal.classList.add("active");
 });
   document.querySelector(".video-modal-overlay")
