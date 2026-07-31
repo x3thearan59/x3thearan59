@@ -1,4 +1,4 @@
-name: Build & Deploy
+name: Build and Deploy
 
 on:
   push:
@@ -11,63 +11,95 @@ permissions:
   id-token: write
 
 jobs:
+
   build:
 
     runs-on: ubuntu-latest
 
     steps:
 
+      # Get repository files
       - name: Checkout
         uses: actions/checkout@v4
 
+
+      # Setup Node for minifiers
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+
+      # Install minification tools
       - name: Install Minifiers
         run: |
           npm install -g html-minifier-terser
           npm install -g clean-css-cli
           npm install -g terser
 
-      - name: Copy site
+
+      # Create deployment folder
+      - name: Create dist folder
         run: |
           mkdir dist
           rsync -av \
-            --exclude=.git \
-            --exclude=.github \
-            ./ dist/
+          --exclude=.git \
+          --exclude=.github \
+          ./ dist/
 
+
+      # Replace __VERSION__ with Git commit hash
+      - name: Add Version Hash
+        run: |
+          VERSION=$(git rev-parse --short HEAD)
+
+          echo "Version: $VERSION"
+
+          find dist -type f -name "*.html" -exec \
+          sed -i "s/__VERSION__/$VERSION/g" {} \;
+
+
+      # Minify HTML
       - name: Minify HTML
         run: |
-          find dist -name "*.html" -exec \
+          find dist -type f -name "*.html" -exec \
           html-minifier-terser \
           --collapse-whitespace \
           --remove-comments \
           --remove-optional-tags \
           --remove-redundant-attributes \
           --remove-script-type-attributes \
-          --remove-tag-whitespace \
           --use-short-doctype \
           --minify-css true \
           --minify-js true \
           -o {} {} \;
 
+
+      # Minify CSS
       - name: Minify CSS
         run: |
-          find dist -name "*.css" -exec \
-          cleancss -o {} {} \;
+          find dist -type f -name "*.css" -exec \
+          cleancss \
+          -o {} {} \;
 
+
+      # Minify Javascript
       - name: Minify JS
         run: |
-          find dist -name "*.js" -exec \
-          terser {} -c -m -o {} \;
+          find dist -type f -name "*.js" -exec \
+          terser {} \
+          --compress \
+          --mangle \
+          -o {} \;
 
-      - name: Upload
+
+      # Upload build
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+
 
   deploy:
 
@@ -79,11 +111,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
-    permissions:
-      pages: write
-      id-token: write
 
     steps:
 
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
